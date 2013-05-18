@@ -2,13 +2,44 @@
 
   // -- Helpers ---------------------------------------------------------------
 
+  /**
+  @method each
+  @private
+  **/
   var each = function (arr, callback, context) {
     for (var i = 0, len = arr.length; i < len; i++) {
       callback.call(context, arr[i], i);
     }
   };
 
-  var xhr = function (url, method, callback) {
+  /**
+  simple abstraction over XMLHttpRequest
+
+  @method xhr
+  @param {String} method 'GET' or 'POST'
+  @param {String} url the request url
+  @param {Object|Array} [data]
+  @param {Function} [callback] executed on request completion
+  @private
+  **/
+  var xhr = function (method, url, data, callback) {
+    var req = new XMLHttpRequest();
+
+    req.onreadystatechange = function () {
+      if (typeof callback === 'function') {
+        callback(req);
+      }
+    };
+
+    req.open(method, url);
+
+    if (method === 'POST' && data) {
+      req.setRequestHeader('Content-Type', 'application/json');
+      req.send(JSON.stringify(data));
+    }
+    else {
+      req.send();
+    }
   };
 
   // -- Constants -------------------------------------------------------------
@@ -17,26 +48,46 @@
 
   // -- EventEmitter ----------------------------------------------------------
 
+  /**
+  @class EventEmitter
+  @constructor
+  **/
   var EventEmitter = function () {
     this._handlers = {
       'log': []
     };
 
-    this.setupShims();
+    this.setupSniffers();
   };
 
   EventEmitter.prototype = {
 
-    setupShims: function () {
-      this._setupLogShim();
+    /**
+    @method setupSniffers
+    **/
+    setupSniffers: function () {
+      this._setupLogSniffer();
     },
 
-    emit: function (eventType, data) {
+    /**
+    calls listeners of an event type
+
+    @method emit
+    @param {String} eventType
+    @param {Object} [payload] any data to pass on the listener
+    **/
+    emit: function (eventType, payload) {
       each(this._handlers[eventType], function (handler) {
-        handler.fn.call(handler.context, data);
+        handler.fn.call(handler.context, payload);
       }, this);
     },
 
+    /**
+    @method on
+    @param {String} eventType
+    @param {Function} handler
+    @param {Object} [context]
+    **/
     on: function (eventType, handler, context) {
       this._handlers[eventType].push({
         fn: handler,
@@ -44,13 +95,25 @@
       });
     },
 
-    _setupLogShim: function () {
+    /**
+    attaches a sniffer around console.log
+
+    @method _setupLogSniffer
+    @protected
+    **/
+    _setupLogSniffer: function () {
       var oldConsole = global.console,
           that = this,
           log;
 
       log = function (message) {
-        that.emit('log', { type: 'log', message: message });
+        that.emit('log', {
+          type:       'log',
+          message:    message,
+          occuredAt:  new Date()
+        });
+
+        // call the original console.log
         if (oldConsole) oldConsole.log.apply(oldConsole, arguments);
       };
 
@@ -78,14 +141,29 @@
 
   SpongeLog.prototype = {
 
-    events: [],
-
+    /**
+    @method attachEvent
+    **/
     attachEvents: function () {
       this.eventEmitter.on('log', this.record, this);
     },
 
+    /**
+    @method record
+    @param {Object} event the event to record
+    **/
     record: function (event) {
       this.events.push(event);
+    },
+
+    /**
+    @method sync
+    **/
+    sync: function () {
+      // extract all events and clearing out the events array
+      var events = this.events.splice(0, this.events.length);
+
+      this.xhr('POST', this.url, events);
     },
 
     /**

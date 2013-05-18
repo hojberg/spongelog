@@ -46,7 +46,18 @@ describe('SpongeLog', function () {
   });
 
   describe('sync', function () {
-    it('makes an xhr request with the current ', function () {
+    var data;
+
+    beforeEach(function () {
+      data = { type: 'log', message: 'test log message', occuredAt: new Date() }
+
+      subject.events.push(data);
+    });
+
+    it('makes an xhr request with the current url and data', function () {
+      spyOn( subject, 'xhr' );
+      subject.sync();
+      expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', [data]);
     });
   });
 
