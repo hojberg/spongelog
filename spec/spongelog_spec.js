@@ -3,6 +3,12 @@ describe('SpongeLog', function () {
   var subject;
 
   beforeEach(function () {
+    // stub to call callback immediately
+    window.setInterval = function (cb) { cb(); };
+
+    // stub xhr calls
+    SpongeLog.prototype.xhr = function () {};
+
     subject = new SpongeLog({
       url: 'some/api',
       interval: 3000
@@ -58,6 +64,33 @@ describe('SpongeLog', function () {
       spyOn( subject, 'xhr' );
       subject.sync();
       expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', [data]);
+    });
+  });
+
+  describe('startIntervalTimer', function () {
+    beforeEach(function () {
+      spyOn( window, 'setInterval' ).andCallThrough();
+      spyOn( subject, 'sync' );
+    });
+
+    it('sets up a timer to call `sync` at the given interval', function () {
+      subject.startIntervalTimer();
+      expect( window.setInterval ).toHaveBeenCalled();
+      expect( subject.sync ).toHaveBeenCalled();
+    });
+  });
+
+  describe('stopIntervalTimer', function () {
+    beforeEach(function () {
+      subject.intervalID = 'asd123';
+      spyOn( window, 'clearInterval' );
+    });
+
+    it('calls clearInterval with the intervalID', function () {
+      subject.stopIntervalTimer();
+      expect( window.clearInterval ).toHaveBeenCalledWith(
+        'asd123'
+      );
     });
   });
 

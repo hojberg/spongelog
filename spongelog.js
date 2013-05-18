@@ -1,4 +1,4 @@
-(function (global) {
+(function () {
 
   // -- Helpers ---------------------------------------------------------------
 
@@ -23,7 +23,7 @@
   @private
   **/
   var xhr = function (method, url, data, callback) {
-    var req = new XMLHttpRequest();
+    var req = new window.XMLHttpRequest();
 
     req.onreadystatechange = function () {
       if (typeof callback === 'function') {
@@ -102,7 +102,7 @@
     @protected
     **/
     _setupLogSniffer: function () {
-      var oldConsole = global.console,
+      var oldConsole = window.console,
           that = this,
           log;
 
@@ -117,8 +117,8 @@
         if (oldConsole) oldConsole.log.apply(oldConsole, arguments);
       };
 
-      // overwrite the global console to sniff log statements
-      global.console = { log: log };
+      // overwrite the window console to sniff log statements
+      window.console = { log: log };
     }
 
   };
@@ -137,6 +137,8 @@
     this.eventEmitter = new EventEmitter();
 
     this.attachEvents();
+
+    this.startIntervalTimer();
   };
 
   SpongeLog.prototype = {
@@ -178,12 +180,32 @@
     **/
     xhr: function () {
       xhr.apply(this, arguments);
+    },
+
+    /**
+    @method startIntervalTimer
+    **/
+    startIntervalTimer: function () {
+      var that = this;
+
+      this.intervalID = window.setInterval(function () {
+        that.sync.call(that);
+      }, this.interval);
+    },
+
+    /**
+    @method stopIntervalTimer
+    **/
+    stopIntervalTimer: function () {
+      if (this.intervalID) {
+        window.clearInterval(this.intervalID);
+      }
     }
 
   };
 
   // -- Expose API ------------------------------------------------------------
 
-  global.SpongeLog = SpongeLog;
+  window.SpongeLog = SpongeLog;
 
-}(window));
+}());
