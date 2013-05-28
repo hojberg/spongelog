@@ -46,8 +46,54 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.type ).toBe( 'log' );
+      expect( event.name ).toBe( 'log' );
+      expect( event.source ).toBe( 'console' );
       expect( event.message ).toBe( 'test log message' );
+    });
+  });
+
+  describe('when console.error is called', function () {
+    beforeEach(function () {
+      window.console.error('test error message');
+    });
+
+    it('records a "error" event', function () {
+      var event = subject.events[0];
+
+      expect( event ).not.toBe( undefined );
+      expect( event.name ).toBe( 'error' );
+      expect( event.source ).toBe( 'console' );
+      expect( event.message ).toBe( 'test error message' );
+    });
+  });
+
+  describe('when console.info is called', function () {
+    beforeEach(function () {
+      window.console.info('test info message');
+    });
+
+    it('records a "info" event', function () {
+      var event = subject.events[0];
+
+      expect( event ).not.toBe( undefined );
+      expect( event.name ).toBe( 'info' );
+      expect( event.source ).toBe( 'console' );
+      expect( event.message ).toBe( 'test info message' );
+    });
+  });
+
+  describe('when console.debug is called', function () {
+    beforeEach(function () {
+      window.console.debug('test debug message');
+    });
+
+    it('records a "debug" event', function () {
+      var event = subject.events[0];
+
+      expect( event ).not.toBe( undefined );
+      expect( event.name ).toBe( 'debug' );
+      expect( event.source ).toBe( 'console' );
+      expect( event.message ).toBe( 'test debug message' );
     });
   });
 
