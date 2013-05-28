@@ -1,5 +1,9 @@
 (function () {
 
+  // -- Originals -------------------------------------------------------------
+
+  var _console = window.console;
+
   // -- Helpers ---------------------------------------------------------------
 
   /**
@@ -54,7 +58,10 @@
   **/
   var EventEmitter = function () {
     this._handlers = {
-      'log': []
+      'log':    [],
+      'info':   [],
+      'error':  [],
+      'debug':  []
     };
 
     this.setupSniffers();
@@ -77,9 +84,13 @@
     @param {Object} [payload] any data to pass on the listener
     **/
     emit: function (eventType, payload) {
-      each(this._handlers[eventType], function (handler) {
-        handler.fn.call(handler.context, payload);
-      }, this);
+      var handlers = this._handlers[eventType];
+
+      if (handlers) {
+        each(handlers, function (handler) {
+          handler.fn.call(handler.context, payload);
+        }, this);
+      }
     },
 
     /**
@@ -102,23 +113,35 @@
     @protected
     **/
     _setupLogSniffer: function () {
-      var oldConsole = window.console,
-          that = this,
-          log;
+      var that = this, store,
+          log, info, error, debug;
 
-      log = function (message) {
-        that.emit('log', {
-          type:       'log',
+      store = function (name, message) {
+        var arguments = Array.prototype.slice.apply(arguments, [1]);
+
+        that.emit(name, {
+          name:       name,
+          source:     'console',
           message:    message,
           occuredAt:  new Date()
         });
 
         // call the original console.log
-        if (oldConsole) oldConsole.log.apply(oldConsole, arguments);
+        if (_console) _console[name].apply(_console, arguments);
       };
 
+      log   = function (message) { store('log',   message) };
+      info  = function (message) { store('info',  message) };
+      error = function (message) { store('error', message) };
+      debug = function (message) { store('debug', message) };
+
       // overwrite the window console to sniff log statements
-      window.console = { log: log };
+      window.console = {
+        log:    log,
+        info:   info,
+        error:  error,
+        debug:  debug
+      };
     }
 
   };
@@ -147,7 +170,10 @@
     @method attachEvent
     **/
     attachEvents: function () {
-      this.eventEmitter.on('log', this.record, this);
+      this.eventEmitter.on('log',     this.record, this);
+      this.eventEmitter.on('info',    this.record, this);
+      this.eventEmitter.on('error',   this.record, this);
+      this.eventEmitter.on('debug',   this.record, this);
     },
 
     /**
