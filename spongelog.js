@@ -2,7 +2,8 @@
 
   // -- Originals -------------------------------------------------------------
 
-  var _console = window.console;
+  var _console = window.console,
+      _onerror = window.onerror;
 
   // -- Helpers ---------------------------------------------------------------
 
@@ -58,10 +59,11 @@
   **/
   var EventEmitter = function () {
     this._handlers = {
-      'log':    [],
-      'info':   [],
-      'error':  [],
-      'debug':  []
+      'log':        [],
+      'info':       [],
+      'error':      [],
+      'debug':      [],
+      'exception':  []
     };
 
     this.setupSniffers();
@@ -74,6 +76,7 @@
     **/
     setupSniffers: function () {
       this._setupLogSniffer();
+      this._setupExceptionSniffer();
     },
 
     /**
@@ -142,6 +145,31 @@
         error:  error,
         debug:  debug
       };
+    },
+
+    /**
+    attaches a sniffer around window.onerror
+    which is called after an exceptions
+
+    @method _setupExceptionSniffer
+    @protected
+    **/
+    _setupExceptionSniffer: function () {
+      var that = this;
+
+      window.onerror = function (error, url, line) {
+        that.emit('exception', {
+          name:       'exception',
+          source:     url + ':L' + line,
+          message:    error,
+          occuredAt:  new Date()
+        });
+
+        // call original onerror handler
+        if (_onerror) {
+          _onerror.apply(this, arguments);
+        }
+      };
     }
 
   };
@@ -170,10 +198,11 @@
     @method attachEvent
     **/
     attachEvents: function () {
-      this.eventEmitter.on('log',     this.record, this);
-      this.eventEmitter.on('info',    this.record, this);
-      this.eventEmitter.on('error',   this.record, this);
-      this.eventEmitter.on('debug',   this.record, this);
+      this.eventEmitter.on('log',       this.record, this);
+      this.eventEmitter.on('info',      this.record, this);
+      this.eventEmitter.on('error',     this.record, this);
+      this.eventEmitter.on('debug',     this.record, this);
+      this.eventEmitter.on('exception', this.record, this);
     },
 
     /**
