@@ -165,7 +165,9 @@
       // extract all events and clearing out the events array
       var events = this.events.splice(0, this.events.length);
 
-      this.xhr('POST', this.url, events);
+      if (events.length) {
+        this.xhr('POST', this.url, events);
+      }
     },
 
     /**

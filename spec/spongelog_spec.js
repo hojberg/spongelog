@@ -54,16 +54,29 @@ describe('SpongeLog', function () {
   describe('sync', function () {
     var data;
 
-    beforeEach(function () {
-      data = { type: 'log', message: 'test log message', occuredAt: new Date() }
+    describe('with recorded events', function () {
+      beforeEach(function () {
+        data = { type: 'log', message: 'test log message', occuredAt: new Date() }
+        subject.events.push(data);
+      });
 
-      subject.events.push(data);
+      it('makes an xhr request with the current url and data', function () {
+        spyOn( subject, 'xhr' );
+        subject.sync();
+        expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', [data]);
+      });
     });
 
-    it('makes an xhr request with the current url and data', function () {
-      spyOn( subject, 'xhr' );
-      subject.sync();
-      expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', [data]);
+    describe('with no eventsrecorded events', function () {
+      beforeEach(function () {
+        subject.events = [];
+      });
+
+      it('makes an xhr request with the current url and data', function () {
+        spyOn( subject, 'xhr' );
+        subject.sync();
+        expect( subject.xhr ).not.toHaveBeenCalled();
+      });
     });
   });
 
