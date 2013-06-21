@@ -8,12 +8,50 @@
 
   /**
   @method each
+  @param {Array} arr
+  @param {Function} callback
+  @param {Any} [context]
   @private
   **/
   var each = function (arr, callback, context) {
     for (var i = 0, len = arr.length; i < len; i++) {
       callback.call(context, arr[i], i);
     }
+  };
+
+  /**
+  @method map
+  @param {Array} arr
+  @param {Function} callback
+  @param {Any} [context]
+  @return {Array}
+  @private
+  **/
+  var map = function (arr, callback, context) {
+    var newArr = [];
+
+    for (var i = 0, len = arr.length; i < len; i++) {
+      newArr.push(callback.call(context, arr[i], i));
+    }
+
+    return newArr;
+  };
+
+  /**
+  @method merge
+  @return {Object}
+  **/
+  var merge = function () {
+    var result = {},
+        arr = Array.prototype.slice.call(arguments, 0);
+
+    each(arr, function (obj) {
+      for (var key in obj) {
+        result[key] = obj[key];
+      }
+    });
+
+    return result;
   };
 
   /**
@@ -155,6 +193,7 @@
   var SpongeLog = function (options) {
     this.url = options.url;
     this.interval = options.interval || INTERVAL;
+    this.sessionData = options.sessionData || {};
 
     this.events = [];
     this.eventEmitter = new EventEmitter();
@@ -189,7 +228,14 @@
     **/
     sync: function () {
       // extract all events and clearing out the events array
-      var events = this.events.splice(0, this.events.length);
+      var events      = this.events.splice(0, this.events.length),
+          sessionData = this.sessionData;
+
+      if (sessionData) {
+        events = map(events, function (ev) {
+          return merge(ev, sessionData);
+        });
+      }
 
       if (events.length) {
         this.xhr('POST', this.url, events);
