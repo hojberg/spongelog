@@ -44,6 +44,22 @@ describe('SpongeLog', function () {
 
   });
 
+  describe('when an exception is thrown', function () {
+    beforeEach(function () {
+      // mimick an exception (jasmine soaks them all)
+      window.onerror('facepalm', 'app.js', 33);
+    });
+
+    it('records a "exception" event', function () {
+      var event = subject.events[0];
+
+      expect( event ).not.toBe( undefined );
+      expect( event.name ).toBe( 'exception' );
+      expect( event.source ).toBe( 'app.js:L33' );
+      expect( event.message ).toBe( 'facepalm' );
+    });
+  });
+
   describe('when console.log is called', function () {
     beforeEach(function () {
       window.console.log('test log message');
