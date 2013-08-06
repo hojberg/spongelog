@@ -11,7 +11,7 @@ describe('SpongeLog', function () {
 
     subject = new SpongeLog({
       url: 'some/api',
-      interval: 3000
+      flushFrequency: 3000
     });
   });
 
@@ -21,17 +21,17 @@ describe('SpongeLog', function () {
       expect( subject.url ).toBe( 'some/api' );
     });
 
-    it('sets the interval', function () {
-      expect( subject.interval ).toBe( 3000 );
+    it('sets the flushFrequency', function () {
+      expect( subject.flushFrequency ).toBe( 3000 );
     });
 
-    describe('with no interval', function () {
+    describe('with no flushFrequency', function () {
       beforeEach(function () {
         subject = new SpongeLog({ url: 'asd' });
       });
 
       it('uses the default', function () {
-        expect( subject.interval ).toBe( 20000 );
+        expect( subject.flushFrequency ).toBe( 20000 );
       });
     });
 
@@ -97,7 +97,7 @@ describe('SpongeLog', function () {
     });
   });
 
-  describe('sync', function () {
+  describe('flush', function () {
     var data;
 
     describe('with recorded events', function () {
@@ -108,7 +108,7 @@ describe('SpongeLog', function () {
 
       it('makes an xhr request with the current url and data', function () {
         spyOn( subject, 'xhr' );
-        subject.sync();
+        subject.flush();
         expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', [data]);
       });
     });
@@ -120,7 +120,7 @@ describe('SpongeLog', function () {
 
       it('makes an xhr request with the current url and data', function () {
         spyOn( subject, 'xhr' );
-        subject.sync();
+        subject.flush();
         expect( subject.xhr ).not.toHaveBeenCalled();
       });
     });
@@ -129,13 +129,13 @@ describe('SpongeLog', function () {
   describe('startIntervalTimer', function () {
     beforeEach(function () {
       spyOn( window, 'setInterval' ).andCallThrough();
-      spyOn( subject, 'sync' );
+      spyOn( subject, 'flush' );
     });
 
-    it('sets up a timer to call `sync` at the given interval', function () {
+    it('sets up a timer to call `flush` at the given flushFrequency', function () {
       subject.startIntervalTimer();
       expect( window.setInterval ).toHaveBeenCalled();
-      expect( subject.sync ).toHaveBeenCalled();
+      expect( subject.flush ).toHaveBeenCalled();
     });
   });
 

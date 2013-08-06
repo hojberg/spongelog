@@ -48,7 +48,7 @@
 
   // -- Constants -------------------------------------------------------------
 
-  var INTERVAL = 20000;
+  var FLUSH_FREQUENCY = 20000;
 
   // -- EventEmitter ----------------------------------------------------------
 
@@ -154,7 +154,7 @@
   **/
   var SpongeLog = function (options) {
     this.url = options.url;
-    this.interval = options.interval || INTERVAL;
+    this.flushFrequency = options.flushFrequency || FLUSH_FREQUENCY;
 
     this.events = [];
     this.eventEmitter = new EventEmitter();
@@ -185,9 +185,9 @@
     },
 
     /**
-    @method sync
+    @method flush
     **/
-    sync: function () {
+    flush: function () {
       // extract all events and clearing out the events array
       var events = this.events.splice(0, this.events.length);
 
@@ -217,8 +217,8 @@
       var that = this;
 
       this.intervalID = window.setInterval(function () {
-        that.sync.call(that);
-      }, this.interval);
+        that.flush.call(that);
+      }, this.flushFrequency);
     },
 
     /**
