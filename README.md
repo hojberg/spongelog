@@ -5,7 +5,7 @@ SpongeLog
 
 Ain't got no square pants
 
-# How to use SpongeLog
+## How to use SpongeLog
 
 Simply instantiate spongelog to begin collecting log and error events:
 
@@ -15,7 +15,7 @@ new SpongeLog({
 });
 ```
 
-## Manually record events
+### Manually record events
 ```javascript
 var spongeLog = new SpongeLog({
   url: 'http://theserverurl'
@@ -29,7 +29,7 @@ spongeLog.record({
 });
 ```
 
-## Manually flush back to the server
+### Manually flush back to the server
 ```javascript
 var spongeLog = new SpongeLog({
   url: 'http://theserverurl'
@@ -38,7 +38,7 @@ var spongeLog = new SpongeLog({
 spongeLog.flush();
 ```
 
-## Set the flush frequency
+### Set the flush frequency
 Default is `20000` (20 seconds)
 
 ```javascript
@@ -48,7 +48,7 @@ var spongeLog = new SpongeLog({
 });
 ```
 
-## Add session data to each event
+### Add session data to each event
 ```javascript
 var spongeLog = new SpongeLog({
   url: 'http://theserverurl',
