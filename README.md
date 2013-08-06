@@ -30,7 +30,6 @@ spongeLog.record({
 ```
 
 ## Manually flush back to the server
-
 ```javascript
 var spongeLog = new SpongeLog({
   url: 'http://theserverurl'
@@ -46,5 +45,15 @@ Default is `20000` (20 seconds)
 var spongeLog = new SpongeLog({
   url: 'http://theserverurl',
   flushFrequency: 4000
+});
+```
+
+## Add session data to each event
+```javascript
+var spongeLog = new SpongeLog({
+  url: 'http://theserverurl',
+  sessionData: {
+    userId: '32AS432SX'
+  }
 });
 ```
