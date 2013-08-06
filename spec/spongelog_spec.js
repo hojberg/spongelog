@@ -11,7 +11,7 @@ describe('SpongeLog', function () {
 
     subject = new SpongeLog({
       url: 'some/api',
-      flushFrequency: 3000
+      flushFrequency: 3000,
       sessionData: {
         uuid: 'asd123'
       }
@@ -150,7 +150,7 @@ describe('SpongeLog', function () {
 
         it('merges events and sessionData', function () {
           spyOn( subject, 'xhr' );
-          subject.sync();
+          subject.flush();
           expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', [{
             name: 'log',
             source: 'console',
