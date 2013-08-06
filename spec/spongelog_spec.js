@@ -12,6 +12,9 @@ describe('SpongeLog', function () {
     subject = new SpongeLog({
       url: 'some/api',
       flushFrequency: 3000
+      sessionData: {
+        uuid: 'asd123'
+      }
     });
   });
 
@@ -25,6 +28,10 @@ describe('SpongeLog', function () {
       expect( subject.flushFrequency ).toBe( 3000 );
     });
 
+    it('sets session data', function () {
+      expect( subject.sessionData ).toEqual({ uuid: 'asd123' });
+    });
+
     describe('with no flushFrequency', function () {
       beforeEach(function () {
         subject = new SpongeLog({ url: 'asd' });
@@ -35,6 +42,22 @@ describe('SpongeLog', function () {
       });
     });
 
+  });
+
+  describe('when an exception is thrown', function () {
+    beforeEach(function () {
+      // mimick an exception (jasmine soaks them all)
+      window.onerror('facepalm', 'app.js', 33);
+    });
+
+    it('records a "exception" event', function () {
+      var event = subject.events[0];
+
+      expect( event ).not.toBe( undefined );
+      expect( event.name ).toBe( 'exception' );
+      expect( event.source ).toBe( 'app.js:L33' );
+      expect( event.message ).toBe( 'facepalm' );
+    });
   });
 
   describe('when console.log is called', function () {
@@ -102,7 +125,15 @@ describe('SpongeLog', function () {
 
     describe('with recorded events', function () {
       beforeEach(function () {
-        data = { type: 'log', message: 'test log message', occuredAt: new Date() }
+        data = {
+          name: 'log',
+          source: 'console',
+          message: 'test log message',
+          occuredAt: new Date()
+        };
+
+        subject.sessionData = {};
+
         subject.events.push(data);
       });
 
@@ -111,9 +142,27 @@ describe('SpongeLog', function () {
         subject.flush();
         expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', [data]);
       });
+
+      describe('and with sessionData', function () {
+        beforeEach(function () {
+          subject.sessionData = { uuid: 'asd123' };
+        });
+
+        it('merges events and sessionData', function () {
+          spyOn( subject, 'xhr' );
+          subject.sync();
+          expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', [{
+            name: 'log',
+            source: 'console',
+            message: 'test log message',
+            occuredAt: data.occuredAt,
+            uuid: 'asd123'
+          }]);
+        });
+      });
     });
 
-    describe('with no eventsrecorded events', function () {
+    describe('with norecorded events', function () {
       beforeEach(function () {
         subject.events = [];
       });
