@@ -2,8 +2,12 @@
 
   // -- Originals -------------------------------------------------------------
 
-  var _console = window.console,
-      _onerror = window.onerror;
+  var Originals = {
+    console: window.console,
+    onerror: window.onerror,
+    xhropen: window.XMLHttpRequest.prototype.open,
+    xhrsend: window.XMLHttpRequest.prototype.send
+  };
 
   // -- Helpers ---------------------------------------------------------------
 
@@ -69,10 +73,14 @@
     var req = new window.XMLHttpRequest();
 
     req.onreadystatechange = function () {
-      if (typeof callback === 'function') {
+      if (this.readyState === 4 && typeof callback === 'function') {
         callback(req);
       }
     };
+
+    // we don't want to go through the displaced XHR for flushing events
+    req.open = Originals.xhropen;
+    req.send = Originals.xhrsend;
 
     req.open(method, url);
 
@@ -97,11 +105,13 @@
   **/
   var EventEmitter = function () {
     this._handlers = {
-      'log':        [],
-      'info':       [],
-      'error':      [],
-      'debug':      [],
-      'exception':  []
+      'log':          [],
+      'info':         [],
+      'error':        [],
+      'debug':        [],
+      'exception':    [],
+      'xhr request':  [],
+      'xhr response': []
     };
 
     this.setupSniffers();
@@ -115,6 +125,7 @@
     setupSniffers: function () {
       this._setupLogSniffer();
       this._setupExceptionSniffer();
+      this._setupXHRSniffer();
     },
 
     /**
@@ -154,21 +165,23 @@
     @protected
     **/
     _setupLogSniffer: function () {
-      var that = this, store,
-          log, info, error, debug;
+      var emitter = this,
+          store, log, info, error, debug;
 
-      store = function (name, message) {
+      store = function (type, message) {
         var arguments = Array.prototype.slice.apply(arguments, [1]);
 
-        that.emit(name, {
-          name:       name,
+        emitter.emit(type, {
+          type:       type,
           source:     'console',
           message:    message,
           occuredAt:  new Date()
         });
 
         // call the original console.log
-        if (_console) _console[name].apply(_console, arguments);
+        if (Originals.console) {
+          Originals.console[type].apply(Originals.console, arguments);
+        }
       };
 
       log   = function (message) { store('log',   message) };
@@ -193,21 +206,95 @@
     @protected
     **/
     _setupExceptionSniffer: function () {
-      var that = this;
+      var emitter = this;
 
       window.onerror = function (error, url, line) {
-        that.emit('exception', {
-          name:       'exception',
+        emitter.emit('exception', {
+          type:       'exception',
           source:     url + ':L' + line,
           message:    error,
           occuredAt:  new Date()
         });
 
         // call original onerror handler
-        if (_onerror) {
-          _onerror.apply(this, arguments);
+        if (Originals.onerror) {
+          Originals.onerror.apply(this, arguments);
         }
       };
+    },
+
+    /**
+    attaches a sniffer around XMLHttpRequest
+
+    @method _setupXHRSniffer
+    @protected
+    **/
+    _setupXHRSniffer: function () {
+      var emitter = this,
+          tid     = 0,
+          _method, _url;
+
+      // displace XMLHttpRequest.open
+      XMLHttpRequest.prototype.open = function (method, url) {
+        _method = method;
+        _url    = url;
+
+        Originals.xhropen.apply(this, arguments);
+      };
+
+      // add a function over readonly response for easy stubbing
+      XMLHttpRequest.prototype._getResponse = function () {
+        return {
+          status:       this.status,
+          statusText:   this.statusText,
+          responseText: this.responseText
+        };
+      }
+
+      // add a function over readonly readyState for easy stubbing
+      XMLHttpRequest.prototype._isRequestDone = function () {
+        return this.readyState === 4;
+      };
+
+      // displace XMLHttpRequest.send
+      XMLHttpRequest.prototype.send = function () {
+        var tid = tid++,
+            source = [tid, _method, _url].join(' ');
+
+        // displace onreadystatechange inside send as it is attached
+        // after newing up XMLHttpRequest
+        var _onreadystatechange = this.onreadystatechange;
+
+        this.onreadystatechange = function () {
+          var response, message;
+
+          if (this._isRequestDone()) {
+            response  = this._getResponse();
+            message   = response.statusText + ' | ' + response.responseText;
+
+            emitter.emit('xhr response', {
+              type:       'xhr response',
+              source:     source,
+              message:    message,
+              occuredAt:  new Date()
+            });
+          }
+
+          if (typeof _onreadystatechange === 'function') {
+            _onreadystatechange.apply(this, arguments);
+          }
+        };
+
+        emitter.emit('xhr request', {
+          type:       'xhr request',
+          source:     source,
+          message:    '',
+          occuredAt:  new Date()
+        });
+
+        Originals.xhrsend.apply(this, arguments);
+      };
+
     }
 
   };
@@ -231,17 +318,21 @@
     this.startIntervalTimer();
   };
 
+  SpongeLog.Originals = Originals;
+
   SpongeLog.prototype = {
 
     /**
     @method attachEvent
     **/
     attachEvents: function () {
-      this.eventEmitter.on('log',       this.record, this);
-      this.eventEmitter.on('info',      this.record, this);
-      this.eventEmitter.on('error',     this.record, this);
-      this.eventEmitter.on('debug',     this.record, this);
-      this.eventEmitter.on('exception', this.record, this);
+      this.eventEmitter.on('log',           this.record, this);
+      this.eventEmitter.on('info',          this.record, this);
+      this.eventEmitter.on('error',         this.record, this);
+      this.eventEmitter.on('debug',         this.record, this);
+      this.eventEmitter.on('exception',     this.record, this);
+      this.eventEmitter.on('xhr request',   this.record, this);
+      this.eventEmitter.on('xhr response',  this.record, this);
     },
 
     /**
