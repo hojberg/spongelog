@@ -121,11 +121,14 @@ describe('SpongeLog', function () {
   });
 
   describe('when an xhr request is made', function () {
+    var xhr;
+
     beforeEach(function () {
       // stub original xhr send
+      spyOn( SpongeLog.Originals, 'xhropen' );
       spyOn( SpongeLog.Originals, 'xhrsend' );
 
-      var xhr = new XMLHttpRequest();
+      xhr = new XMLHttpRequest();
       xhr.open('GET', 'http://something.com');
       xhr.send();
     });
@@ -134,9 +137,20 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.type ).toBe( 'xhr request' );
+      expect( event.type ).toBe( 'xhr:request' );
       expect( event.source ).toContain( 'GET http://something.com' );
       expect( event.message ).toBe( '' );
+    });
+
+    it('calls Originals.xhropen', function () {
+      expect( SpongeLog.Originals.xhropen ).toHaveBeenCalledWith(
+        'GET',
+        'http://something.com'
+      );
+    });
+
+    it('calls Originals.xhrsend', function () {
+      expect( SpongeLog.Originals.xhrsend ).toHaveBeenCalled();
     });
   });
 
@@ -165,7 +179,7 @@ describe('SpongeLog', function () {
       var event = subject.events[1];
 
       expect( event ).not.toBe( undefined );
-      expect( event.type ).toBe( 'xhr response' );
+      expect( event.type ).toBe( 'xhr:response' );
       expect( event.source ).toContain( 'GET http://something.com' );
       expect( event.message ).toBe( '200 OK | {"foo":"bar"}' );
     });

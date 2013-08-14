@@ -23,6 +23,14 @@
       callback.call(context, arr[i], i);
     }
   };
+  /**
+  @method isArray
+  @param {Any} val
+  @private
+  **/
+  var isArray = function (val) {
+    return Object.prototype.toString.call(val) === "[object Array]";
+  };
 
   /**
   @method map
@@ -110,8 +118,8 @@
       'error':        [],
       'debug':        [],
       'exception':    [],
-      'xhr request':  [],
-      'xhr response': []
+      'xhr:request':  [],
+      'xhr:response': []
     };
 
     this.setupSniffers();
@@ -137,6 +145,10 @@
     **/
     emit: function (eventType, payload) {
       var handlers = this._handlers[eventType];
+
+      if (isArray(payload.message)) {
+        payload.message = payload.message.join(' | ');
+      }
 
       if (handlers) {
         each(handlers, function (handler) {
@@ -249,7 +261,7 @@
           statusText:   this.statusText,
           responseText: this.responseText
         };
-      }
+      };
 
       // add a function over readonly readyState for easy stubbing
       XMLHttpRequest.prototype._isRequestDone = function () {
@@ -270,10 +282,10 @@
 
           if (this._isRequestDone()) {
             response  = this._getResponse();
-            message   = response.statusText + ' | ' + response.responseText;
+            message   = [response.statusText, response.responseText];
 
-            emitter.emit('xhr response', {
-              type:       'xhr response',
+            emitter.emit('xhr:response', {
+              type:       'xhr:response',
               source:     source,
               message:    message,
               occuredAt:  new Date()
@@ -285,8 +297,8 @@
           }
         };
 
-        emitter.emit('xhr request', {
-          type:       'xhr request',
+        emitter.emit('xhr:request', {
+          type:       'xhr:request',
           source:     source,
           message:    '',
           occuredAt:  new Date()
@@ -331,8 +343,8 @@
       this.eventEmitter.on('error',         this.record, this);
       this.eventEmitter.on('debug',         this.record, this);
       this.eventEmitter.on('exception',     this.record, this);
-      this.eventEmitter.on('xhr request',   this.record, this);
-      this.eventEmitter.on('xhr response',  this.record, this);
+      this.eventEmitter.on('xhr:request',   this.record, this);
+      this.eventEmitter.on('xhr:response',  this.record, this);
     },
 
     /**
