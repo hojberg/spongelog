@@ -54,7 +54,7 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.name ).toBe( 'exception' );
+      expect( event.type ).toBe( 'exception' );
       expect( event.source ).toBe( 'app.js:L33' );
       expect( event.message ).toBe( 'facepalm' );
     });
@@ -69,7 +69,7 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.name ).toBe( 'log' );
+      expect( event.type ).toBe( 'log' );
       expect( event.source ).toBe( 'console' );
       expect( event.message ).toBe( 'test log message' );
     });
@@ -84,7 +84,7 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.name ).toBe( 'error' );
+      expect( event.type ).toBe( 'error' );
       expect( event.source ).toBe( 'console' );
       expect( event.message ).toBe( 'test error message' );
     });
@@ -99,7 +99,7 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.name ).toBe( 'info' );
+      expect( event.type ).toBe( 'info' );
       expect( event.source ).toBe( 'console' );
       expect( event.message ).toBe( 'test info message' );
     });
@@ -114,9 +114,74 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.name ).toBe( 'debug' );
+      expect( event.type ).toBe( 'debug' );
       expect( event.source ).toBe( 'console' );
       expect( event.message ).toBe( 'test debug message' );
+    });
+  });
+
+  describe('when an xhr request is made', function () {
+    var xhr;
+
+    beforeEach(function () {
+      // stub original xhr send
+      spyOn( SpongeLog.Originals, 'xhropen' );
+      spyOn( SpongeLog.Originals, 'xhrsend' );
+
+      xhr = new XMLHttpRequest();
+      xhr.open('GET', 'http://something.com');
+      xhr.send();
+    });
+
+    it('records an "xhr request" event', function () {
+      var event = subject.events[0];
+
+      expect( event ).not.toBe( undefined );
+      expect( event.type ).toBe( 'xhr:request' );
+      expect( event.source ).toContain( 'GET http://something.com' );
+      expect( event.message ).toBe( '' );
+    });
+
+    it('calls Originals.xhropen', function () {
+      expect( SpongeLog.Originals.xhropen ).toHaveBeenCalledWith(
+        'GET',
+        'http://something.com'
+      );
+    });
+
+    it('calls Originals.xhrsend', function () {
+      expect( SpongeLog.Originals.xhrsend ).toHaveBeenCalled();
+    });
+  });
+
+  describe('after an xhr response', function () {
+    beforeEach(function () {
+      // stub original xhr send
+      spyOn( SpongeLog.Originals, 'xhrsend' );
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', 'http://something.com');
+
+      spyOn( xhr, '_getResponse' ).andReturn({
+        status: 200,
+        statusText: '200 OK',
+        responseText: '{"foo":"bar"}'
+      });
+
+      xhr.send();
+
+      // mock onreadystatechange call to indicate response
+      spyOn( xhr, '_isRequestDone' ).andReturn(true);
+      xhr.onreadystatechange();
+    });
+
+    it('records an "xhr response" event', function () {
+      var event = subject.events[1];
+
+      expect( event ).not.toBe( undefined );
+      expect( event.type ).toBe( 'xhr:response' );
+      expect( event.source ).toContain( 'GET http://something.com' );
+      expect( event.message ).toBe( '200 OK | {"foo":"bar"}' );
     });
   });
 
@@ -126,7 +191,7 @@ describe('SpongeLog', function () {
     describe('with recorded events', function () {
       beforeEach(function () {
         data = {
-          name: 'log',
+          type: 'log',
           source: 'console',
           message: 'test log message',
           occuredAt: new Date()
@@ -152,7 +217,7 @@ describe('SpongeLog', function () {
           spyOn( subject, 'xhr' );
           subject.flush();
           expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', [{
-            name: 'log',
+            type: 'log',
             source: 'console',
             message: 'test log message',
             occuredAt: data.occuredAt,
