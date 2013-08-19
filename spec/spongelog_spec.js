@@ -164,7 +164,7 @@ describe('SpongeLog', function () {
 
       spyOn( xhr, '_getResponse' ).andReturn({
         status: 200,
-        statusText: '200 OK',
+        statusText: 'OK',
         responseText: '{"foo":"bar"}'
       });
 
@@ -181,7 +181,7 @@ describe('SpongeLog', function () {
       expect( event ).not.toBe( undefined );
       expect( event.type ).toBe( 'xhr:response' );
       expect( event.source ).toContain( 'GET http://something.com' );
-      expect( event.message ).toBe( '200 OK | {"foo":"bar"}' );
+      expect( event.message ).toBe( '200 | {"foo":"bar"}' );
     });
   });
 
