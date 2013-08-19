@@ -111,7 +111,9 @@
   @class EventEmitter
   @constructor
   **/
-  var EventEmitter = function () {
+  var EventEmitter = function (options) {
+    this.xhrIgnoreDomains = options.xhrIgnoreDomains || [];
+
     this._handlers = {
       'log':          [],
       'info':         [],
@@ -168,6 +170,23 @@
         fn: handler,
         context: context || this
       });
+    },
+
+    /**
+    @method shouldIgnoreURL
+    @return {Boolean}
+    **/
+    shouldIgnoreURL: function (url) {
+      var domains = this.xhrIgnoreDomains,
+          shouldIgnore = false;
+
+      each(domains, function (domain) {
+        if (url.indexOf(domain) !== -1) {
+          shouldIgnore = true;
+        }
+      });
+
+      return shouldIgnore;
     },
 
     /**
@@ -270,39 +289,41 @@
 
       // displace XMLHttpRequest.send
       XMLHttpRequest.prototype.send = function () {
-        var tid = tid++,
-            source = [tid, _method, _url].join(' ');
+        var _tid = tid++,
+            source = ['['+_tid+']:', _method, _url].join(' ');
 
-        // displace onreadystatechange inside send as it is attached
-        // after newing up XMLHttpRequest
-        var _onreadystatechange = this.onreadystatechange;
+        if (!emitter.shouldIgnoreURL(_url)) {
+          // displace onreadystatechange inside send as it is attached
+          // after newing up XMLHttpRequest
+          var _onreadystatechange = this.onreadystatechange;
 
-        this.onreadystatechange = function () {
-          var response, message;
+          this.onreadystatechange = function () {
+            var response, message;
 
-          if (this._isRequestDone()) {
-            response  = this._getResponse();
-            message   = [response.statusText, response.responseText];
+            if (this._isRequestDone()) {
+              response  = this._getResponse();
+              message   = [response.status, response.responseText];
 
-            emitter.emit('xhr:response', {
-              type:       'xhr:response',
-              source:     source,
-              message:    message,
-              occuredAt:  new Date()
-            });
-          }
+              emitter.emit('xhr:response', {
+                type:       'xhr:response',
+                source:     source,
+                message:    message,
+                occuredAt:  new Date()
+              });
+            }
 
-          if (typeof _onreadystatechange === 'function') {
-            _onreadystatechange.apply(this, arguments);
-          }
-        };
+            if (typeof _onreadystatechange === 'function') {
+              _onreadystatechange.apply(this, arguments);
+            }
+          };
 
-        emitter.emit('xhr:request', {
-          type:       'xhr:request',
-          source:     source,
-          message:    '',
-          occuredAt:  new Date()
-        });
+          emitter.emit('xhr:request', {
+            type:       'xhr:request',
+            source:     source,
+            message:    '',
+            occuredAt:  new Date()
+          });
+        }
 
         Originals.xhrsend.apply(this, arguments);
       };
@@ -323,7 +344,9 @@
     this.sessionData = options.sessionData || {};
 
     this.events = [];
-    this.eventEmitter = new EventEmitter();
+    this.eventEmitter = new EventEmitter({
+      xhrIgnoreDomains: options.xhrIgnoreDomains
+    });
 
     this.attachEvents();
 
