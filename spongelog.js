@@ -1,5 +1,16 @@
 (function () {
 
+  // window.console shim
+  if (!window.console) {
+    window.console = {
+      log:    function () {},
+      info:   function () {},
+      warn:   function () {},
+      error:  function () {},
+      debug:  function () {}
+    };
+  }
+
   // -- Originals -------------------------------------------------------------
 
   var Originals = {
@@ -197,36 +208,38 @@
     **/
     _setupLogSniffer: function () {
       var emitter = this,
-          store, log, info, error, debug;
+          displacer;
 
-      store = function (type, message) {
-        var arguments = Array.prototype.slice.apply(arguments, [1]);
+      if (!Originals.console) {
+        window.console    = {};
+        Originals.console = window.console;
+      }
 
-        emitter.emit(type, {
-          type:       type,
-          source:     'console',
-          message:    message,
-          occuredAt:  new Date()
-        });
+      displacer = function (method) {
+        var original = Originals.console[method];
 
-        // call the original console.log
-        if (Originals.console) {
-          Originals.console[type].apply(Originals.console, arguments);
-        }
+        return function () {
+          var message = Array.prototype.slice.apply(arguments).join(' ');
+
+          emitter.emit(method, {
+            type:       method,
+            source:     'console',
+            message:    message,
+            occuredAt:  new Date()
+          });
+
+          if (original.apply) {
+            original.apply(Originals.console, arguments);
+          }
+          else {
+            original(message);
+          }
+        };
       };
 
-      log   = function (message) { store('log',   message) };
-      info  = function (message) { store('info',  message) };
-      error = function (message) { store('error', message) };
-      debug = function (message) { store('debug', message) };
-
-      // overwrite the window console to sniff log statements
-      window.console = {
-        log:    log,
-        info:   info,
-        error:  error,
-        debug:  debug
-      };
+      each(['log', 'info', 'warn', 'error', 'debug'], function (method) {
+        window.console[method] = displacer(method);
+      });
     },
 
     /**
