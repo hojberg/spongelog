@@ -228,11 +228,13 @@
             occuredAt:  new Date()
           });
 
-          if (original.apply) {
-            original.apply(Originals.console, arguments);
-          }
-          else {
-            original(message);
+          if (typeof original === 'function') {
+            if (original.apply) {
+              original.apply(Originals.console, arguments);
+            }
+            else {
+              original(message);
+            }
           }
         };
       };
