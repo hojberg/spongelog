@@ -54,9 +54,8 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.type ).toBe( 'exception' );
-      expect( event.source ).toBe( 'app.js:L33' );
-      expect( event.message ).toBe( 'facepalm' );
+      expect( event.level).toBe( 'error' );
+      expect( event.message ).toBe( 'Exception: app.js:L33 facepalm' );
     });
   });
 
@@ -69,8 +68,7 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.type ).toBe( 'log' );
-      expect( event.source ).toBe( 'console' );
+      expect( event.level ).toBe( 'info' );
       expect( event.message ).toBe( 'test log message' );
     });
   });
@@ -84,8 +82,7 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.type ).toBe( 'error' );
-      expect( event.source ).toBe( 'console' );
+      expect( event.level ).toBe( 'error' );
       expect( event.message ).toBe( 'test error message' );
     });
   });
@@ -99,8 +96,7 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.type ).toBe( 'info' );
-      expect( event.source ).toBe( 'console' );
+      expect( event.level ).toBe( 'info' );
       expect( event.message ).toBe( 'test info message' );
     });
   });
@@ -114,8 +110,7 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.type ).toBe( 'debug' );
-      expect( event.source ).toBe( 'console' );
+      expect( event.level ).toBe( 'debug' );
       expect( event.message ).toBe( 'test debug message' );
     });
   });
@@ -137,9 +132,8 @@ describe('SpongeLog', function () {
       var event = subject.events[0];
 
       expect( event ).not.toBe( undefined );
-      expect( event.type ).toBe( 'xhr:request' );
-      expect( event.source ).toContain( 'GET http://something.com' );
-      expect( event.message ).toBe( '' );
+      expect( event.level ).toBe( 'info' );
+      expect( event.message ).toContain( 'xhr:request [0]: GET http://something.com' );
     });
 
     it('calls Originals.xhropen', function () {
@@ -179,9 +173,8 @@ describe('SpongeLog', function () {
       var event = subject.events[1];
 
       expect( event ).not.toBe( undefined );
-      expect( event.type ).toBe( 'xhr:response' );
-      expect( event.source ).toContain( 'GET http://something.com' );
-      expect( event.message ).toBe( '200 | {"foo":"bar"}' );
+      expect( event.level ).toBe( 'info' );
+      expect( event.message).toContain('xhr:response [0]: GET http://something.com 200');
     });
   });
 
@@ -191,8 +184,7 @@ describe('SpongeLog', function () {
     describe('with recorded events', function () {
       beforeEach(function () {
         data = {
-          type: 'log',
-          source: 'console',
+          level: 'info',
           message: 'test log message',
           occuredAt: new Date()
         };
@@ -205,7 +197,7 @@ describe('SpongeLog', function () {
       it('makes an xhr request with the current url and data', function () {
         spyOn( subject, 'xhr' );
         subject.flush();
-        expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', [data]);
+        expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', { events: [data] });
       });
 
       describe('and with sessionData', function () {
@@ -216,13 +208,12 @@ describe('SpongeLog', function () {
         it('merges events and sessionData', function () {
           spyOn( subject, 'xhr' );
           subject.flush();
-          expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', [{
-            type: 'log',
-            source: 'console',
+          expect( subject.xhr ).toHaveBeenCalledWith('POST', 'some/api', { events: [{
+            level: 'info',
             message: 'test log message',
             occuredAt: data.occuredAt,
             uuid: 'asd123'
-          }]);
+          }]});
         });
       });
     });

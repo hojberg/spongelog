@@ -222,10 +222,9 @@
           var message = Array.prototype.slice.apply(arguments).join(' ');
 
           emitter.emit(method, {
-            type:       method,
-            source:     'console',
-            message:    message,
-            occuredAt:  new Date()
+            level: method === 'log' ? 'info' : method,
+            message: message,
+            occuredAt: new Date()
           });
 
           if (typeof original === 'function') {
@@ -256,10 +255,9 @@
 
       window.onerror = function (error, url, line) {
         emitter.emit('exception', {
-          type:       'exception',
-          source:     url + ':L' + line,
-          message:    error,
-          occuredAt:  new Date()
+          level: 'error',
+          message: 'Exception: ' + url + ':L' + line + ' ' + error,
+          occuredAt: new Date()
         });
 
         // call original onerror handler
@@ -313,16 +311,14 @@
           var _onreadystatechange = this.onreadystatechange;
 
           this.onreadystatechange = function () {
-            var response, message;
+            var response;
 
             if (this._isRequestDone()) {
               response  = this._getResponse();
-              message   = [response.status, response.responseText];
 
               emitter.emit('xhr:response', {
-                type:       'xhr:response',
-                source:     source,
-                message:    message,
+                message: 'xhr:response ' + source + ' ' + response.status,
+                level: 'info',
                 occuredAt:  new Date()
               });
             }
@@ -333,9 +329,8 @@
           };
 
           emitter.emit('xhr:request', {
-            type:       'xhr:request',
-            source:     source,
-            message:    '',
+            message: 'xhr:request ' + source,
+            level: 'info',
             occuredAt:  new Date()
           });
         }
@@ -408,7 +403,7 @@
       }
 
       if (events.length) {
-        this.xhr('POST', this.url, events);
+        this.xhr('POST', this.url, { events: events });
       }
     },
 
