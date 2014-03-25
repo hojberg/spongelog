@@ -224,7 +224,7 @@
           emitter.emit(method, {
             level: method === 'log' ? 'info' : method,
             message: message,
-            occuredAt: new Date()
+            occurredAt: new Date()
           });
 
           if (typeof original === 'function') {
@@ -257,7 +257,7 @@
         emitter.emit('exception', {
           level: 'error',
           message: 'Exception: ' + url + ':L' + line + ' ' + error,
-          occuredAt: new Date()
+          occurredAt: new Date()
         });
 
         // call original onerror handler
@@ -319,7 +319,7 @@
               emitter.emit('xhr:response', {
                 message: 'xhr:response ' + source + ' ' + response.status,
                 level: 'info',
-                occuredAt:  new Date()
+                occurredAt:  new Date()
               });
             }
 
@@ -331,7 +331,7 @@
           emitter.emit('xhr:request', {
             message: 'xhr:request ' + source,
             level: 'info',
-            occuredAt:  new Date()
+            occurredAt:  new Date()
           });
         }
 
